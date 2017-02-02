@@ -12,10 +12,10 @@ classdef dvmov < handle
         sizeX
         sizeY
         sizeZ
+        mov
     end
     properties (Hidden=true)
         omeMeta
-        mov
         fformat
     end
     properties (Dependent)
@@ -34,7 +34,7 @@ classdef dvmov < handle
                     warning('dv file needed');
                 end
             elseif ~exist(varargin{1})
-                error('file doesn''t exist');
+                 error('file doesn''t exist');
             else
                 error('wrong file input type');
             end
@@ -62,8 +62,23 @@ classdef dvmov < handle
                 obj.sizeZ=omeMeta1.getPixelsSizeZ(0).getValue();
                 obj.numstacks=obj.sizeZ;
                 obj.numframes=omeMeta1.getPixelsSizeT(0).getValue();
+                
+                % If .dv file contains transmitted light reference z stacks
+                % along with fluorescent images, the following code removes 
+                % transmitted light images from obj.mov (Jess - 20160201).
+                if numel(obj.mov) == obj.numframes*obj.numstacks
+                    obj.mov = obj.mov;
+                else numel(obj.mov) == 2*obj.numframes*obj.numstacks
+                    obj.mov = [];
+                    for i = 1:2:obj.numframes
+                        fl = data{1}((i*obj.numstacks + 1):(i*obj.numstacks...
+                            + obj.numstacks),1);
+                        obj.mov = vertcat(obj.mov,fl);
+                    end
+                end
             end
         end
+
         %grab frame
         function img=grab(obj,iframe,istack)
             img=double(obj.mov{istack+obj.numstacks*(iframe-1)});
